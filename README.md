@@ -2,9 +2,13 @@
 
 Internet Priority is a Windows utility for seeing which connection Windows is routing internet traffic through and choosing a preferred Wi-Fi or Ethernet adapter. Built by Ryan Handler.
 
+**[Download the Windows installer (.msi)](https://github.com/shwartzewolf/internet-priority/releases/download/v1.5.0/Internet.Priority.Setup.msi)**
+
+Version 1.5.0 is unsigned. [Release notes and SHA-256 checksum](https://github.com/shwartzewolf/internet-priority/releases/tag/v1.5.0)
+
 ## Install and use
 
-Download `Internet Priority Setup.msi` from [GitHub Releases](https://github.com/shwartzewolf/internet-priority/releases). The installer installs the app for the current user and adds an **Internet Priority** desktop shortcut.
+Run the MSI to install the app for the current user and add an **Internet Priority** desktop shortcut.
 
 - **Using for internet** shows the adapter Windows selects for representative public IPv4 and IPv6 destinations. It refreshes every five seconds. A VPN or destination-specific route can change the result.
 - **Connections** lists detected Wi-Fi, Ethernet and active VPN connections. **Current priority** shows the configured preference separately.
