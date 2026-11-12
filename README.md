@@ -6,6 +6,8 @@ Internet Priority is a Windows utility for seeing which connection Windows is ro
 
 Version 1.5.0 is unsigned. [Release notes and SHA-256 checksum](https://github.com/shwartzewolf/internet-priority/releases/tag/v1.5.0)
 
+![Internet Priority showing the active internet route, available connections, and adapter priority controls with sample connection names](internet-priority.png)
+
 ## Install and use
 
 Run the MSI to install the app for the current user and add an **Internet Priority** desktop shortcut.
