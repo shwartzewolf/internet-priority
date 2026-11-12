@@ -1,0 +1,87 @@
+name: Windows installer
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      sign_installer:
+        description: Submit the installer for SignPath Foundation approval
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  installer:
+    runs-on: windows-2025
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and verify installer
+        id: build
+        shell: powershell
+        run: |
+          $result = .\Build.ps1
+          "version=$($result.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Upload unsigned installer
+        id: unsigned
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Internet-Priority-unsigned
+          path: dist/Internet Priority Setup.msi
+          if-no-files-found: error
+
+      - name: Check SignPath configuration
+        if: github.event_name == 'workflow_dispatch' && inputs.sign_installer
+        shell: powershell
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_POLICY_SLUG: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          SIGNPATH_ARTIFACT_CONFIGURATION_SLUG: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+        run: |
+          $required = @(
+            'SIGNPATH_API_TOKEN', 'SIGNPATH_ORGANIZATION_ID', 'SIGNPATH_PROJECT_SLUG',
+            'SIGNPATH_POLICY_SLUG', 'SIGNPATH_ARTIFACT_CONFIGURATION_SLUG'
+          )
+          $missing = $required | Where-Object { -not [Environment]::GetEnvironmentVariable($_) }
+          if ($missing) { throw "Missing SignPath settings: $($missing -join ', ')." }
+
+      - name: Submit installer for signing
+        if: github.event_name == 'workflow_dispatch' && inputs.sign_installer
+        uses: SignPath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          parameters: |
+            version: ${{ toJSON(steps.build.outputs.version) }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: signed
+
+      - name: Verify signed installer and embedded app
+        if: github.event_name == 'workflow_dispatch' && inputs.sign_installer
+        shell: powershell
+        run: .\Build.ps1 -VerifySignedInstaller '.\signed\Internet Priority Setup.msi'
+
+      - name: Upload verified signed installer
+        if: github.event_name == 'workflow_dispatch' && inputs.sign_installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Internet-Priority-signed
+          path: signed/Internet Priority Setup.msi
+          if-no-files-found: error
